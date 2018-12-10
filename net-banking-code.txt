@@ -1,0 +1,265 @@
+using System;
+using System.Data;
+using System.Configuration;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Web.UI.HtmlControls;
+using System.Data.SqlClient;
+using ElectronicCash.DAL;
+public class CustomerLoginBL : Connection
+{
+    public static DataSet ds;
+    public CustomerLoginBL()
+    {
+    }
+    private string uname, password;
+    public string Uname
+    {
+        get { return uname; }
+        set { uname = value; }
+    }
+    public string Password
+    {
+        get { return password; }
+        set { password = value; }
+    }
+    public void InsertUserLoginInfo()
+    {        SqlParameter[] p = new SqlParameter[2];
+        p[0] = new SqlParameter("@uname", this.uname);
+        p[0].DbType = DbType.String;
+        p[1] = new SqlParameter("@password", this.password);
+        p[1].DbType = DbType.String;
+        SqlHelper.ExecuteNonQuery(con, CommandType.StoredProcedure, "SpAddUserLoginInfo", p);
+    }
+    public bool GetAccountHolder()
+    {
+        int count;
+        SqlParameter[] p = new SqlParameter[2];
+        p[0] = new SqlParameter("@uname", this.uname);
+        p[0].DbType = DbType.String;
+        p[1] = new SqlParameter("@password", this.password);
+        p[1].DbType = DbType.String;
+        count = int.Parse(SqlHelper.ExecuteScalar(con,   CommandType.StoredProcedure, "spCheckUser", p).ToString());
+        if (count > 0)
+            return true;
+        else
+            return false;
+    }
+    public bool GetAdmin()
+    {
+        int count;
+        SqlParameter[] p = new SqlParameter[2];
+        p[0] = new SqlParameter("@uname", this.uname);
+        p[0].DbType = DbType.String;
+        p[1] = new SqlParameter("@password", this.password);
+        p[1].DbType = DbType.String;count = int.Parse(SqlHelper.ExecuteScalar(con, CommandType.StoredProcedure, "spCheckAdmin", p).ToString());
+        if (count > 0)
+            return true;
+        else
+            return false;
+    }
+    public void ChangePassword()
+    {
+        SqlParameter[] p = new SqlParameter[2];
+        p[0] = new SqlParameter("@uname", this.uname);
+        p[0].DbType = DbType.String;
+        p[1] = new SqlParameter("@password", this.password);
+        p[1].DbType = DbType.String;
+
+        SqlHelper.ExecuteNonQuery(con, CommandType.StoredProcedure, "SpChangePassword", p);
+     
+    }
+    public bool GetUserName(string uname)
+    {
+        int count = 0;
+        string str = "select count(user_name) from login_master where user_name='" + uname + "'";
+        count = int.Parse(SqlHelper.ExecuteScalar(con, CommandType.Text, str).ToString());
+        if (count > 0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }}
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.IO;
+using System.Data.SqlClient;
+using System.Drawing.Imaging;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.Text;
+public partial class new_user : System.Web.UI.Page
+{
+    SqlConnection con = new SqlConnection("Data Source=SHAHUL;Initial Catalog=VisualCryptography;User Id=sa;Password=sa");
+    SqlCommand cmd=new SqlCommand();
+    string fn;
+    int fs;
+    static int uid;    
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        Label12.Text = "";
+    }
+protected void Button1_Click(object sender, EventArgs e)
+    {
+        if (TextBox5.Text == this.Session["CaptchaImageText"].ToString())
+        {
+            fn = Session["FName"].ToString();
+            fs = Convert.ToInt32(Session["fs"]);
+            string name, p, rp, eid;
+            name = un.Text;
+            p = passwd.Text;
+            rp = reepasswd.Text;
+            eid = email.Text;
+            string doname;
+            string ext = ".jpg";
+            con.Open();
+            cmd = new SqlCommand("select max(userid) from newuser", con);
+            object result = cmd.ExecuteScalar();
+            if (result.GetType() != typeof(DBNull))
+            {
+                uid = Convert.ToInt32(result);
+            }
+            else
+            {
+                uid = 0;
+            }
+            con.Close();
+            uid = uid + 1;
+            string fileName = Path.GetFileName(fn);
+            doname = Path.GetFileName(fn);
+            string fileExtension = Path.GetExtension(fn);
+            string documentType = String.Empty;
+            switch (fileExtension
+{
+                case ".gif":
+                    documentType = "image/gif";
+                    break;
+                case ".png":
+                    documentType = "image/png";
+                    break;
+                case ".jpg":
+                    documentType = "image/jpg";
+                    break;
+            }
+            int fileSize = Convert.ToInt32(fs);
+            Byte[] documentBinary = new Byte[fileSize];
+  con.Open();
+  cmd = new SqlCommand("insert into newuser values('" + name + "','" + p + "','" + rp + "','" + eid + "','" + doname + "','" + ext + "','" + fileSize + "',@DocData)", con);
+   cmd.Parameters.AddWithValue("@DocData", documentBinary);
+  int res = cmd.ExecuteNonQuery();
+            if (res > 0)
+            {
+                Label12.Text = "File Saved to Database";
+                Response.Write("<script language='javascript'>alert('\n'File Saved to Database');</script>");
+            }
+            con.Close();
+            Session["FName"] = doname.ToString();
+            Session["fs"] = fs;
+            Response.Redirect("~/downloadcaptcha.aspx");
+        }
+        else
+        {
+            ClientScript.RegisterStartupScript(Page.GetType(), "validation", "<script language='javascript'>alert('Captcha Image and Text are not same. Pleasse Try Again!!!')</script>");
+        }
+    }
+    protected void Button2_Click(object sender, EventArgs e)
+    {     
+    }
+}
+using System;
+using System.Collections;
+using System.Configuration;
+using System.Data;
+using System.Linq;
+using System.Web;
+using System.Web.Security;
+using System.Web.UI;
+using System.Web.UI.HtmlControls;
+using System.Web.UI.WebControls;
+using System.Web.UI.WebControls.WebParts;
+using System.Xml.Linq;
+using System.IO;
+using System.Data.SqlClient;
+public partial class downloadcaptcha : System.Web.UI.Page
+{
+    SqlConnection con = new SqlConnection("Data Source=SHAHUL;Initial Catalog=VisualCryptography;User Id=sa;Password=sa");
+    string fn;
+    string fileName;
+    int fs;
+protected void Page_Load(object sender, EventArgs e)
+fn = Session["FName"].ToString();
+        fs = Convert.ToInt32(Session["fs"]);
+ }
+    protected void LinkButton1_Click(object sender, EventArgs e)
+    {
+        SqlCommand cmd = new SqlCommand("select * from newuser where fname = '" + fn + "' and sice = '" + fs + "'", con);
+        DataTable dt = GetData(cmd);
+        if (dt != null)
+        {
+            download(dt);
+        }
+        string fileLocCopy = @"C:\\jp" + fn;
+        string fileLoc =Server.MapPath(@"~\Docs\" + fn);
+        if (File.Exists(fileLoc))
+        {
+            if (File.Exists(fileLocCopy))
+                File.Delete(fileLocCopy);
+            File.Copy(fileLoc, fileLocCopy);
+        }
+    }
+    private DataTable GetData(SqlCommand cmd)
+    {
+        DataTable dt = new DataTable();
+        SqlDataAdapter sda = new SqlDataAdapter();
+        cmd.CommandType = CommandType.Text;
+        cmd.Connection = con;
+        try
+        {
+            con.Open();
+            sda.SelectCommand = cmd;
+            sda.Fill(dt);
+            return dt;
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            con.Close();
+            sda.Dispose();
+            con.Dispose();
+        }
+    }
+    private void download(DataTable dt)
+    {
+        string ftype;
+        Byte[] bytes = (Byte[])dt.Rows[0]["data"];
+        Response.Buffer = true;
+        Response.Charset = "";
+        Response.Cache.SetCacheability(HttpCacheability.NoCache);
+        ftype = dt.Rows[0]["type"].ToString();
+        Response.ContentType = "application/"+ ftype+" ";
+        Response.AddHeader("content-disposition", "attachment;filename=" + dt.Rows[0]["fname"].ToString());
+        Response.BinaryWrite(bytes);
+        Response.Flush();
+        Response.End();
+    }
+}
